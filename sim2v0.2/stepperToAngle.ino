@@ -1,4 +1,4 @@
-void moveToAngle(float targetAngle) {
+void stepperToAngle(float targetAngle) {
     float angleDifference = targetAngle - stepperAngle;
     float currentAngle = stepperAngle;
 

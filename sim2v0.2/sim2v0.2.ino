@@ -13,7 +13,7 @@ void loop() {
 
     inverseK(magnitudeAngle,magnitude);
 
-    baseServ.write(stepperAngle+magnitudeAngle);   //will be replaced with the stepper motor
+    stepperToAngle(stepperAngle+magnitudeAngle);   //will be replaced with the stepper motor
     servoArm.write(180-servoArmAngle);    //i put my servo backards
 
 
