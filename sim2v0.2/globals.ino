@@ -11,8 +11,8 @@ const int downButton = 5;
 const int leftButton = 3;
 const int startButton = 7;
 
-const float stepperArmLengh = 228;  
-const float servoArmLengh = 112;
+const float stepperArmLengh = 192;  
+const float servoArmLengh = 101;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 const float magnitudePercent = (stepperArmLengh-servoArmLengh)/100;   //one percent between smallest and biggest magnitude
