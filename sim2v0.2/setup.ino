@@ -6,6 +6,12 @@ void setup() {
   pinMode(leftButton,INPUT_PULLUP);
   pinMode(startButton,INPUT_PULLUP);
 
+  pinMode(DIR_PIN, OUTPUT);  //stepper pinout
+  pinMode(STEP_PIN, OUTPUT);
+  pinMode(EN_PIN, OUTPUT);
+
+  digitalWrite(EN_PIN, LOW);  // Enable motor driver
+
   servoArm.attach(10); //lower arm
   servoZ.attach(13); //temp pin for z servo
   servoGrip.attach(9);
