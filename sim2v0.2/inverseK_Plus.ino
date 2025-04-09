@@ -7,7 +7,7 @@ void inverseK(float ang,float mag)
 
 void goToTarget(float mesuredDistance){ 
 
-  mesuredDistance = mesuredDistance+20 // adding 2 cm to align to the center of the diabolololo; 
+  mesuredDistance = mesuredDistance*1.08; //slightly incresed it to give it a satisfying smack|||||||||||remove later|||||||||||||||||||
   float newMagnitude;
   float newAngle;
   float sensAngle = abs(stepperAngle + servoArmAngle -90); //getting the angle between the magnitude line and the sensor direction 

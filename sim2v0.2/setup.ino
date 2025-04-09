@@ -7,11 +7,14 @@ void setup() {
   pinMode(startButton,INPUT_PULLUP);
 
   servoArm.attach(10); //lower arm
+  servoZ.attach(13); //temp pin for z servo
+  servoGrip.attach(9);
 
   Serial.begin(9600);
   if (!TOF.begin()) {   //initialise serial for ToF
     Serial.println(F("Failed to boot Time of Flight sensor"));
     while(1);
   }
+  grab();
 }
 

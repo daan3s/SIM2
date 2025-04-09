@@ -12,9 +12,7 @@ void setup() {
 }
 
 void loop() {
-    int pressureValue = analogRead(FSR_PIN);
-    Serial.print("Pressure Value: ");
-    Serial.println(pressureValue);
+    
 
     if (pressureValue > THRESHOLD) {
         myServo.write(90); // Stop the servo (or hold position)

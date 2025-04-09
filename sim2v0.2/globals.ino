@@ -11,6 +11,10 @@ const int downButton = 5;
 const int leftButton = 3;
 const int startButton = 7;
 
+#define FSR_PIN A0   // Analog pin for the FSR sensor
+const int thresholdPress = 500; // Pressure threshold value
+int pressureValue = 0;
+
 const float stepperArmLengh = 192;  
 const float servoArmLengh = 101;
 
@@ -27,3 +31,5 @@ float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
 
 Servo servoArm;
+Servo servoZ;
+Servo servoGrip;
