@@ -1,6 +1,6 @@
 void stepperToAngle(int targetAngle) {
 
-    float angleDifference = targetAngle - stepperAngle;
+    float angleDifference = targetAngle - currentStepperAngle;
     int stepsToMove = abs(angleDifference) * STEPS_PER_DEGREE;  
 
     Serial.print("Moving ");
@@ -10,7 +10,7 @@ void stepperToAngle(int targetAngle) {
     digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
 
     int minDelay = 5000; // higher valeue » Slow movement for high precision
-    int maxDelay = 5500;
+    int maxDelay = 5500;  // if maxdelay is higher than mindelay gradual acceleration becomes gradual decelaretion  
 
     for (int i = 0; i < stepsToMove; i++) {
         int stepDelay = map(i, 0, stepsToMove, minDelay, maxDelay); // Gradual acceleration
@@ -20,6 +20,6 @@ void stepperToAngle(int targetAngle) {
         delayMicroseconds(stepDelay);
     }
 
-    currentAngle = targetAngle; 
+    currentStepperAngle = targetAngle; 
     Serial.println("Movement complete!");
 }
