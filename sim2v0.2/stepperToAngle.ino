@@ -1,33 +1,25 @@
-void stepperToAngle(float targetAngle) {
+void stepperToAngle(int targetAngle) {
+
     float angleDifference = targetAngle - stepperAngle;
-    float currentAngle = stepperAngle;
-
-    if (angleDifference == 0) { // If already at the position, do nothing
-        Serial.println("Already at desired position.");
-        BT.println("Already at desired position.");
-        return;
-    }
-
-    int stepsToMove = abs(angleDifference) * STEPS_PER_DEGREE;  // Use correct step calculation for NEMA 17
+    int stepsToMove = abs(angleDifference) * STEPS_PER_DEGREE;  
 
     Serial.print("Moving ");
     Serial.print(stepsToMove);
     Serial.println(" steps");
 
-    if (angleDifference > 0) {
-        digitalWrite(DIR_PIN, LOW); // Reverse direction: CCW for increasing angle
-    } else {
-        digitalWrite(DIR_PIN, HIGH); // Reverse direction: CW for decreasing angle
-    }
+    digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
+
+    int minDelay = 5000; // higher valeue » Slow movement for high precision
+    int maxDelay = 5500;
 
     for (int i = 0; i < stepsToMove; i++) {
+        int stepDelay = map(i, 0, stepsToMove, minDelay, maxDelay); // Gradual acceleration
         digitalWrite(STEP_PIN, HIGH);
-        delayMicroseconds(800);  // Adjust timing if needed
+        delayMicroseconds(stepDelay);
         digitalWrite(STEP_PIN, LOW);
-        delayMicroseconds(800);
+        delayMicroseconds(stepDelay);
     }
 
-    currentAngle = targetAngle; // Update current position after moving
+    currentAngle = targetAngle; 
     Serial.println("Movement complete!");
-    BT.println("Movement complete!");
 }
