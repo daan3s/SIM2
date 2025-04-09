@@ -15,6 +15,7 @@ const int startButton = 7;
 #define STEP_PIN 2  
 #define EN_PIN   8  
 
+int currentStepperAngle; 
 const int STEPS_PER_REV = 1600;  // 1/8 step mode
 const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
 
