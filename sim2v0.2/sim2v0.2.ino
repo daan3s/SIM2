@@ -19,17 +19,21 @@ void loop() {
       break;
     case 2:
       //gototarget
-      Serial.println("incomplete");
+      Serial.println("please input [target]magnitude (0-100) : ");
+      gototarget(DataIN());
+      
     break;
 
     case 3:
       //readTOF
-      Serial.println("incomplete");
+      Serial.println("please input number of iterations : ");
+      Serial.println(readTOF(DataIN()));
     break;
 
     case 4:
       //grab
-      Serial.println("incomplete");
+      Serial.println("grabing...");
+      grab();
     break;
 
     case 5:
@@ -39,12 +43,18 @@ void loop() {
 
     case 6:
       //steppertoangle
-      Serial.println("incomplete");
+      Serial.println("please input angle for stepper motor : ");
+      stepperAngle = DataIN();
+      steppertoangle(stepperAngle)
+      
     break;
 
     case 7:
       //servoArm
-      Serial.println("incomplete");
+      Serial.println("please input angle for stepper motor : ");
+      servoArmAngle = DataIN();
+      servoArm.write(servoArmAngle);    //i put my servo backards
+
     break;
 
     default:
@@ -64,7 +74,7 @@ void loop() {
       inverseK(magnitudeAngle,magnitude);
 
       stepperToAngle(stepperAngle+magnitudeAngle);   //will be replaced with the stepper motor
-      servoArm.write(180-servoArmAngle);    //i put my servo backards
+      servoArm.write(servoArmAngle);    //i put my servo backards
 
 
   }
