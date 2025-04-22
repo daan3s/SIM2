@@ -21,6 +21,17 @@ void setup() {
     Serial.println(F("Failed to boot Time of Flight sensor"));
     while(1);
   }
-  grab();
+  //grab();
+
+  Serial.println("start in debug mode?   (type 1 for yes)")
+  switch(DataIN()) {
+    case 1:
+      debugMode = 1;
+      Serial.println("debug mode !");
+      break;
+    default:
+      debugMode = 0;
+      Serial.println("normal mode !");
+  }
 }
 

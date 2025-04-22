@@ -34,4 +34,6 @@ int magnitudeAngle = 90; // in deg
 float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
 
+bool debugMode;
+
 Servo servoArm;
