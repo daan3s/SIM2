@@ -14,20 +14,18 @@ const int startButton = 7;
 #define DIR_PIN  4  
 #define STEP_PIN 2  
 #define EN_PIN   8  
+#define FSR_PIN A0
 
 int currentStepperAngle; 
 const int STEPS_PER_REV = 1600;  // 1/8 step mode
 const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
 
+const int thresholdPress = 512;
+
 const float stepperArmLengh = 192;  
 const float servoArmLengh = 101;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
-const float magnitudePercent = (stepperArmLengh-servoArmLengh)/100;   //one percent between smallest and biggest magnitude
-int magnitudeAngle = 90; // in deg
-
-
-int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter
 const float magnitudePercent = (stepperArmLengh-servoArmLengh)/100;   //one percent between smallest and biggest magnitude
 int magnitudeAngle = 90; // in deg
 
@@ -37,15 +35,13 @@ float servoArmAngle = 0;   //lower arm's angle
 bool debugMode;
 
 Servo servoArm;
+Servo servoZ;
+Servo servoGrip;
 
 void setup() {
   // put your setup code here, to run once:
-  pinMode(rightButton,INPUT_PULLUP);
-  pinMode(upButton,INPUT_PULLUP);
-  pinMode(downButton,INPUT_PULLUP);
-  pinMode(leftButton,INPUT_PULLUP);
-  pinMode(startButton,INPUT_PULLUP);
-
+  
+  pinMode(FSR_PIN, INPUT);
   pinMode(DIR_PIN, OUTPUT);  //stepper pinout
   pinMode(STEP_PIN, OUTPUT);
   pinMode(EN_PIN, OUTPUT);
@@ -61,9 +57,8 @@ void setup() {
     Serial.println(F("Failed to boot Time of Flight sensor"));
     while(1);
   }
-  //grab();
 
-  Serial.println("start in debug mode?   (type 1 for yes)")
+  Serial.println("start in debug mode?   (type 1 for yes)");
   switch(DataIN()) {
     case 1:
       debugMode = 1;
@@ -77,7 +72,7 @@ void setup() {
 
 
 void loop() {
-  if (debugmode){
+  if (debugMode){
     //debugmode 
     //manualy execute functions
       Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm");
@@ -94,7 +89,7 @@ void loop() {
     case 2:
       //gototarget
       Serial.println("please input [target]magnitude (0-100) : ");
-      gototarget(DataIN());
+      goToTarget(DataIN());
       
     break;
 
@@ -119,7 +114,7 @@ void loop() {
       //steppertoangle
       Serial.println("please input angle for stepper motor : ");
       stepperAngle = DataIN();
-      steppertoangle(stepperAngle)
+      stepperToAngle(stepperAngle);
       
     break;
 
@@ -138,7 +133,7 @@ void loop() {
     //normal mode
     //automicly does everything
     // INCOMPLETE !!! 
-    dataIN();
+    
 
     if (digitalRead(startButton) == LOW){
       delay(10);
@@ -157,18 +152,19 @@ void loop() {
 
 int DataIN(){
   //need to make this not part advance until a command has been given
-  Serial.println("input a number pls : ")
+  int tenp;
+  Serial.println("input a number pls : ");
   do{
     if(Serial.available()){
       String input = Serial.readStringUntil('\n');  
       input.trim();  
 
       if(isNumber(input)){
-        input.toInt()
-        return(input);
+        tenp = input.toInt();
+        return(tenp);
       }
     }
-  }while(Serial.available()!);
+  }while(!Serial.available());
 }
 
 
@@ -280,6 +276,7 @@ int sweep(int anglesToScan){
   int distSum = 0; 
   int angleSum = 0;
   int hasMesured = 0;
+  int numOfMesurment = 0;
 
   for(int i; i > anglesToScan; i++){
     int dist = readTOF(3);
@@ -298,11 +295,11 @@ int sweep(int anglesToScan){
   return(angleSum,distSum);
 }
 
-void grab()
+void grab(){
   servoZ.write(20); //gripper lowers around object
   int gripAngle = 90;
-  int i = 0;
-  do {
+int pressureValue;
+  do{
     servoGrip.write(gripAngle--); //close gripper slightly
     
     pressureValue = analogRead(FSR_PIN); //read pressure sensor
@@ -312,6 +309,6 @@ void grab()
     if(gripAngle <= 0){
       break;
     }
-  }
-  while(pressureValue == thresholdPress); //check if gripper is gripping
+  }while(pressureValue == thresholdPress); //check if gripper is gripping
+}
 
