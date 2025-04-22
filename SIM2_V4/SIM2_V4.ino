@@ -53,6 +53,7 @@ void setup() {
   servoGrip.attach(9);
 
   Serial.begin(9600);
+  Serial.println("");
   if (!TOF.begin()) {   //initialise serial for ToF
     Serial.println(F("Failed to boot Time of Flight sensor"));
     while(1);
@@ -75,7 +76,7 @@ void loop() {
   if (debugMode){
     //debugmode 
     //manualy execute functions
-      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm");
+      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo");
       Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
@@ -120,9 +121,24 @@ void loop() {
 
     case 7:
       //servoArm
-      Serial.println("please input angle for stepper motor : ");
+      Serial.println("please input angle for servo : ");
       servoArmAngle = DataIN();
-      servoArm.write(servoArmAngle);    //i put my servo backards
+      servoArm.write(servoArmAngle);    
+
+    break;
+
+    case 8:
+      //Zservo
+      Serial.println("please input angle for servo : ");
+      servoZ.write(DataIN());
+      
+
+    break;
+
+    case 9:
+      //gripServo
+      Serial.println("please input angle for servo : ");
+      servoGrip.write(DataIN());
 
     break;
 
@@ -153,19 +169,20 @@ void loop() {
 int DataIN(){
   //need to make this not part advance until a command has been given
   int tenp;
-  Serial.println("input a number pls : ");
-  do{
-    if(Serial.available()){
-      String input = Serial.readStringUntil('\n');  
-      input.trim();  
+  Serial.print("input a number pls : ");
+  
+  while(Serial.available() == 0){} //stops everything until there's input at serial 
+    
+  String input = Serial.readStringUntil('\n');  
+  input.trim();  
 
-      if(isNumber(input)){
-        tenp = input.toInt();
-        Serial.print(tenp);
-        return(tenp);
-      }
-    }
-  }while(!Serial.available());
+  if(isNumber(input)){
+    tenp = input.toInt();
+    Serial.println(tenp);
+    return(tenp);
+  }
+    
+  
 }
 
 
@@ -297,8 +314,8 @@ int sweep(int anglesToScan){
 }
 
 void grab(){
-  servoZ.write(20); //gripper lowers around object
-  int gripAngle = 90;
+  servoZ.write(170); //gripper lowers around object
+  int gripAngle = 165;
 int pressureValue;
   do{
     servoGrip.write(gripAngle--); //close gripper slightly
@@ -307,9 +324,9 @@ int pressureValue;
     Serial.print("Pressure Value: ");
     Serial.println(pressureValue);
 
-    if(gripAngle <= 0){
+    if(gripAngle <= 45){
       break;
     }
-  }while(pressureValue == thresholdPress); //check if gripper is gripping
+  }while(pressureValue > thresholdPress); //check if gripper is gripping
 }
 
