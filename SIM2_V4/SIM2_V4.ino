@@ -321,9 +321,10 @@ int sweep(int anglesToScan){
   stepperToAngle(stepperAngle+magnitudeAngle);
   servoZ.write(180);
 
+  int dist;
 
   for(int i = 0; i <= anglesToScan; i++){
-    int dist = readTOF(1);
+    dist = readTOF(1);
 
     if (dist =! 0){
       distSum = distSum + dist;
