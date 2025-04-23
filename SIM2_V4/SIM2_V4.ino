@@ -73,7 +73,7 @@ void loop() {
   if (debugMode){
     //debugmode 
     //manualy execute functions
-      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab");
+      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab  11,sweep2");
       Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
@@ -160,6 +160,11 @@ void loop() {
       Serial.println("ungrabing...");
       ungrab();
     break;
+
+    case 11:
+      //sweep
+      Serial.println("sweeping...");
+      sweep2();
 
     default:
       Serial.println("command not recognised");
@@ -372,7 +377,7 @@ void ungrab(){
   servoZ.write(0);
 }
 
-void sweep2(){
+int sweep2(){
 
   magnitude = magnitudePercent(80);     //enter sweep position
   inverseK(magnitudeAngle,magnitude);     
@@ -405,6 +410,6 @@ void sweep2(){
   Serial.print(magnitudeAngle);
   Serial.print(" at a distance of ");
   Serial.println(dist);
-  return(magnitudeAngle,dist);
+  return(dist);
 }
 
