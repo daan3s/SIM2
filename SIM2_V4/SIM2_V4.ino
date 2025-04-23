@@ -72,7 +72,7 @@ void loop() {
   if (debugMode){
     //debugmode 
     //manualy execute functions
-      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo");
+      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab");
       Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
@@ -151,6 +151,12 @@ void loop() {
       Serial.println("please input angle for servo : ");
       servoGrip.write(DataIN());
 
+    break;
+
+    case 10:
+      //ungrab
+      Serial.println("ungrabing...");
+      ungrab();
     break;
 
     default:
@@ -347,5 +353,13 @@ int pressureValue;
     }
   }while(pressureValue > thresholdPress); //check if gripper is gripping
   servoZ.write(0); //gripper rises object
+}
+
+void ungrab(){
+  servoZ.write(180);
+  delay(700);
+  servoGrip.write(180);
+  delay(300);
+  servoZ.write(0);
 }
 
