@@ -13,10 +13,10 @@ int currentStepperAngle;
 const int STEPS_PER_REV = 1600;  // 1/8 step mode
 const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
 
-const int thresholdPress = 712;
+const int thresholdPress = 512;
 
 const float stepperArmLengh = 194;  
-const float servoArmLengh = 130;
+const float servoArmLengh = 120;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 
@@ -25,7 +25,7 @@ int magnitudeAngle = 90; // in deg
 float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
 
-bool debugMode;
+bool debugMode=1;
 
 Servo servoArm;
 Servo servoZ;
@@ -54,7 +54,7 @@ void setup() {
 
   servoZ.write(0);      //initial location of servos (good for debug)
   servoGrip.write(180);
-
+/*
   Serial.println("start in debug mode?   (type 1 for yes)");
   switch(DataIN()) {
     case 1:
@@ -65,6 +65,7 @@ void setup() {
       debugMode = 0;
       Serial.println("normal mode !");
   }
+  */
 }
 
 
@@ -221,8 +222,8 @@ void stepperToAngle(int targetAngle) {
 
     digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
 
-    int minDelay = 5000; // higher valeue » Slow movement for high precision
-    int maxDelay = 5500;  // if maxdelay is higher than mindelay gradual acceleration becomes gradual decelaretion  
+    int minDelay = 4000; // higher valeue » Slow movement for high precision
+    int maxDelay = 4500;  // if maxdelay is higher than mindelay gradual acceleration becomes gradual decelaretion  
 
     for (int i = 0; i < stepsToMove; i++) {
         int stepDelay = map(i, 0, stepsToMove, minDelay, maxDelay); // Gradual acceleration
@@ -348,7 +349,7 @@ int pressureValue;
     Serial.print("Pressure Value: ");
     Serial.println(pressureValue);
 
-    if(gripAngle <= 30){
+    if(gripAngle <= 20){
       break;
     }
   }while(pressureValue > thresholdPress); //check if gripper is gripping
