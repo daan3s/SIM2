@@ -4,13 +4,6 @@
 
 Adafruit_VL53L0X TOF = Adafruit_VL53L0X();    //declare time of flight
 
-// remove buttons when bluetooth is ready
-const int rightButton = 6;
-const int upButton = 4;
-const int downButton = 5;
-const int leftButton = 3;
-const int startButton = 7;
-
 #define DIR_PIN  4  
 #define STEP_PIN 2  
 #define EN_PIN   8  
@@ -20,14 +13,15 @@ int currentStepperAngle;
 const int STEPS_PER_REV = 1600;  // 1/8 step mode
 const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
 
-const int thresholdPress = 512;
+const int thresholdPress = 712;
 
-const float stepperArmLengh = 192;  
-const float servoArmLengh = 101;
+const float stepperArmLengh = 194;  
+const float servoArmLengh = 130;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 const float magnitudePercent = (stepperArmLengh-servoArmLengh)/100;   //one percent between smallest and biggest magnitude
 int magnitudeAngle = 90; // in deg
+const int armServoOffset = 180;
 
 float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
@@ -85,11 +79,20 @@ void loop() {
       magnitudeAngle = DataIN();
       Serial.println("please input [target]magnitude (0-100) : ");
       magnitude = DataIN()*magnitudePercent;
+      
       inverseK(magnitudeAngle,magnitude);
+
+      Serial.print("stepper : ");
+      Serial.println(stepperAngle + magnitudeAngle);
+      Serial.print("servo : ");
+      Serial.println(armServoOffset - servoArmAngle);
+      
+      stepperToAngle(stepperAngle + magnitudeAngle);
+      servoArm.write(armServoOffset - servoArmAngle);
       break;
     case 2:
       //gototarget
-      Serial.println("please input [target]magnitude (0-100) : ");
+      Serial.println("please input ToF mesurment (0-100) : ");
       goToTarget(DataIN());
       
     break;
@@ -123,7 +126,7 @@ void loop() {
       //servoArm
       Serial.println("please input angle for servo : ");
       servoArmAngle = DataIN();
-      servoArm.write(servoArmAngle);    
+      servoArm.write(armServoOffset - servoArmAngle);    
 
     break;
 
@@ -145,16 +148,13 @@ void loop() {
     default:
       Serial.println("command not recognised");
     }
+    Serial.println("");
+    Serial.println("");
   }else{
     //normal mode
     //automicly does everything
     // INCOMPLETE !!! 
     
-
-    if (digitalRead(startButton) == LOW){
-      delay(10);
-      goToTarget(readTOF(10));
-    }
 
       inverseK(magnitudeAngle,magnitude);
 
@@ -181,10 +181,7 @@ int DataIN(){
     Serial.println(tenp);
     return(tenp);
   }
-    
-  
 }
-
 
 bool isNumber(String str) {
     if (str.length() == 0) return false;
@@ -266,7 +263,7 @@ int readTOF(int numOfIterations){
     TOF.rangingTest(&measure, false); // set it to 'true' to get all debug data in serial! (probably never be used)
 
     if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 8000 ) {  // filter failures and incorrect data
-    //Serial.println(measure.RangeMilliMeter); //prints distance
+    Serial.println(measure.RangeMilliMeter); //prints distance
     data = data + measure.RangeMilliMeter;  
     succsesses++;
 
@@ -296,6 +293,12 @@ int sweep(int anglesToScan){
   int hasMesured = 0;
   int numOfMesurment = 0;
 
+  magnitude = 60*magnitudePercent;
+
+  inverseK(magnitudeAngle,magnitude);     //enter sweep position
+  stepperToAngle(stepperAngle+magnitudeAngle);
+  servoArm.write(armServoOffset - servoArmAngle);
+
   for(int i; i > anglesToScan; i++){
     int dist = readTOF(3);
 
@@ -304,7 +307,7 @@ int sweep(int anglesToScan){
       angleSum = angleSum + magnitudeAngle;
       numOfMesurment++;
     }
-    stepperToAngle(magnitudeAngle++);
+    stepperToAngle(stepperAngle + magnitudeAngle++);
     delay(10);
   }
   distSum = distSum/numOfMesurment;
