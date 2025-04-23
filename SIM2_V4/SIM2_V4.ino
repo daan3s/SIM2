@@ -9,18 +9,18 @@ Adafruit_VL53L0X TOF = Adafruit_VL53L0X();    //declare time of flight
 #define EN_PIN   8  
 #define FSR_PIN A0
 
-int currentStepperAngle; 
+int currentStepperAngle = 180; 
 const int STEPS_PER_REV = 1600;  // 1/8 step mode
 const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
 
 const int thresholdPress = 512;
 
-const float stepperArmLengh = 194;  
+const float stepperArmLengh = 190;  
 const float servoArmLengh = 120;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 
-int magnitudeAngle = 90; // in deg
+int magnitudeAngle = 180; // in deg
 
 float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
@@ -120,6 +120,7 @@ void loop() {
 
     case 5:
       //sweep
+      Serial.println("enter amount of degrees to sweep through");
       sweep(DataIN());
     break;
 
@@ -222,11 +223,11 @@ void stepperToAngle(int targetAngle) {
 
     digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
 
-    int minDelay = 4000; // higher valeue » Slow movement for high precision
-    int maxDelay = 4500;  // if maxdelay is higher than mindelay gradual acceleration becomes gradual decelaretion  
+    int minDelay = 4500; // higher valeue » Slow movement for high precision
+    int maxDelay = 5500;  // if maxdelay is higher than mindelay gradual acceleration becomes gradual decelaretion  
 
     for (int i = 0; i < stepsToMove; i++) {
-        int stepDelay = map(i, 0, stepsToMove, minDelay, maxDelay); // Gradual acceleration
+        int stepDelay = map(i, 0, stepsToMove, maxDelay, minDelay); // Gradual acceleration
         digitalWrite(STEP_PIN, HIGH);
         delayMicroseconds(stepDelay);
         digitalWrite(STEP_PIN, LOW);
@@ -246,7 +247,6 @@ void inverseK(float ang,float mag)
 
 void goToTarget(float mesuredDistance){ 
 
-  mesuredDistance = mesuredDistance*1.08; //slightly incresed it to give it a satisfying smack|||||||||||remove later|||||||||||||||||||
   float newMagnitude;
   float newAngle;
   float sensAngle = abs(stepperAngle + servoArmAngle -90); //getting the angle between the magnitude line and the sensor direction 
@@ -257,12 +257,17 @@ void goToTarget(float mesuredDistance){
   magnitude = newMagnitude;
   magnitudeAngle = newAngle;
   
+
+  
+
   Serial.print("mesuredDistance : ");  //debug
   Serial.print(mesuredDistance);
   Serial.print("  | newMagnitude : ");
   Serial.print(newMagnitude);
   Serial.print("  | newAngle : ");
   Serial.print(newAngle);
+  Serial.print("  | magPecent : ");
+  Serial.print(map(newMagnitude,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh,0,100));
   Serial.println("");
   
 }
@@ -274,9 +279,9 @@ int readTOF(int numOfIterations){
 
   while(succsesses < numOfIterations && failures < numOfIterations){ // will run until it has enough data or failed mesurments
     
-    delay(12);
+   
     VL53L0X_RangingMeasurementData_t measure; // takes the actual mesurment
-    
+     delay(17);
   
     TOF.rangingTest(&measure, false); // set it to 'true' to get all debug data in serial! (probably never be used)
 
@@ -286,7 +291,7 @@ int readTOF(int numOfIterations){
     succsesses++;
 
     } else {
-    //Serial.println(" out of range ");
+    Serial.println(" out of range ");
     failures++;
     }
   }
@@ -305,35 +310,37 @@ int sweep(int anglesToScan){
   // scans for the diabolo
   //returns the magnitude and angle of the diabolo location
 
-  int anglesDone = 0;
   int distSum = 0; 
   int angleSum = 0;
   int hasMesured = 0;
   int numOfMesurment = 0;
 
-  magnitude = magnitudePercent(76);
+  magnitude = magnitudePercent(80);
   inverseK(magnitudeAngle,magnitude);     //enter sweep position
   servoArm.write(servoArmAngle);
   stepperToAngle(stepperAngle+magnitudeAngle);
+  servoZ.write(180);
 
 
-  for(int i; i > anglesToScan; i++){
-    int dist = readTOF(3);
+  for(int i = 0; i <= anglesToScan; i++){
+    int dist = readTOF(1);
 
     if (dist =! 0){
       distSum = distSum + dist;
-      angleSum = angleSum + magnitudeAngle + magnitudeAngle;
+      angleSum = angleSum + (magnitudeAngle + magnitudeAngle -i);
       numOfMesurment++;
+      Serial.println(distSum);
+
     }
-    stepperToAngle(stepperAngle + magnitudeAngle);
-    delay(10);
+    stepperToAngle(stepperAngle + magnitudeAngle -i);
+    delay(200);
   }
   distSum = distSum/numOfMesurment;
   angleSum = angleSum/numOfMesurment;
 
-  Serial.print("saw object at");
+  Serial.print("saw object at ");
   Serial.print(angleSum);
-  Serial.print("at a distance of");
+  Serial.print(" at a distance of ");
   Serial.println(distSum);
   return(angleSum,distSum);
 }
@@ -362,5 +369,41 @@ void ungrab(){
   servoGrip.write(180);
   delay(300);
   servoZ.write(0);
+}
+
+void sweep2(){
+
+  magnitude = magnitudePercent(80);     //enter sweep position
+  inverseK(magnitudeAngle,magnitude);     
+  servoArm.write(servoArmAngle);
+  stepperToAngle(stepperAngle+magnitudeAngle);
+  servoZ.write(180);
+  servoGrip.write(20);
+  delay(300);
+
+  int inrangeCounter = 0; 
+  int dist;
+
+  while(true){
+    dist = readTOF(2);
+    
+    Serial.print(dist);
+
+    if(dist>180 && dist<450){
+      Serial.print("  inrange  ");
+      inrangeCounter++;
+    }
+
+    if(inrangeCounter>1){
+      break;
+    }
+    stepperToAngle(stepperAngle + magnitudeAngle--);
+    delay(500);
+  }
+  Serial.print("saw object at ");
+  Serial.print(magnitudeAngle);
+  Serial.print(" at a distance of ");
+  Serial.println(dist);
+  return(magnitudeAngle,dist);
 }
 
