@@ -19,9 +19,8 @@ const float stepperArmLengh = 194;
 const float servoArmLengh = 130;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
-const float magnitudePercent = (stepperArmLengh-servoArmLengh)/100;   //one percent between smallest and biggest magnitude
+
 int magnitudeAngle = 90; // in deg
-const int armServoOffset = 180;
 
 float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
@@ -53,6 +52,9 @@ void setup() {
     while(1);
   }
 
+  servoZ.write(0);      //initial location of servos (good for debug)
+  servoGrip.write(180);
+
   Serial.println("start in debug mode?   (type 1 for yes)");
   switch(DataIN()) {
     case 1:
@@ -78,17 +80,23 @@ void loop() {
       Serial.println("please input [target]magnitudeAngle (0-360) : ");
       magnitudeAngle = DataIN();
       Serial.println("please input [target]magnitude (0-100) : ");
-      magnitude = DataIN()*magnitudePercent;
+      magnitude = magnitudePercent(DataIN());
       
+
+      Serial.print("magnitudeAngle : ");
+      Serial.println(magnitudeAngle);
+      Serial.print("magnitude");
+      Serial.println(magnitude);
+
       inverseK(magnitudeAngle,magnitude);
 
       Serial.print("stepper : ");
       Serial.println(stepperAngle + magnitudeAngle);
       Serial.print("servo : ");
-      Serial.println(armServoOffset - servoArmAngle);
+      Serial.println(servoArmAngle);
       
       stepperToAngle(stepperAngle + magnitudeAngle);
-      servoArm.write(armServoOffset - servoArmAngle);
+      servoArm.write(servoArmAngle);
       break;
     case 2:
       //gototarget
@@ -111,7 +119,7 @@ void loop() {
 
     case 5:
       //sweep
-      Serial.println("incomplete");
+      sweep(DataIN());
     break;
 
     case 6:
@@ -126,7 +134,7 @@ void loop() {
       //servoArm
       Serial.println("please input angle for servo : ");
       servoArmAngle = DataIN();
-      servoArm.write(armServoOffset - servoArmAngle);    
+      servoArm.write(servoArmAngle);    
 
     break;
 
@@ -164,8 +172,11 @@ void loop() {
   }
 }
 
+int magnitudePercent(int perc){ //converts % to mm
 
-
+  perc = map(perc,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh);   //one percent between smallest and biggest magnitude
+  return(perc);
+}
 int DataIN(){
   //need to make this not part advance until a command has been given
   int tenp;
@@ -293,32 +304,36 @@ int sweep(int anglesToScan){
   int hasMesured = 0;
   int numOfMesurment = 0;
 
-  magnitude = 60*magnitudePercent;
-
+  magnitude = magnitudePercent(76);
   inverseK(magnitudeAngle,magnitude);     //enter sweep position
+  servoArm.write(servoArmAngle);
   stepperToAngle(stepperAngle+magnitudeAngle);
-  servoArm.write(armServoOffset - servoArmAngle);
+
 
   for(int i; i > anglesToScan; i++){
     int dist = readTOF(3);
 
     if (dist =! 0){
       distSum = distSum + dist;
-      angleSum = angleSum + magnitudeAngle;
+      angleSum = angleSum + magnitudeAngle + magnitudeAngle;
       numOfMesurment++;
     }
-    stepperToAngle(stepperAngle + magnitudeAngle++);
+    stepperToAngle(stepperAngle + magnitudeAngle);
     delay(10);
   }
   distSum = distSum/numOfMesurment;
   angleSum = angleSum/numOfMesurment;
 
+  Serial.print("saw object at");
+  Serial.print(angleSum);
+  Serial.print("at a distance of");
+  Serial.println(distSum);
   return(angleSum,distSum);
 }
 
 void grab(){
-  servoZ.write(170); //gripper lowers around object
-  int gripAngle = 165;
+  int gripAngle = 180;
+  servoZ.write(180);
 int pressureValue;
   do{
     servoGrip.write(gripAngle--); //close gripper slightly
@@ -327,9 +342,10 @@ int pressureValue;
     Serial.print("Pressure Value: ");
     Serial.println(pressureValue);
 
-    if(gripAngle <= 45){
+    if(gripAngle <= 30){
       break;
     }
   }while(pressureValue > thresholdPress); //check if gripper is gripping
+  servoZ.write(0); //gripper rises object
 }
 
