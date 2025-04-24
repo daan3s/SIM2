@@ -68,6 +68,7 @@ void setup() {
   */
 }
 
+int atAngle; // IF THIS WORKS IM ANGRY      im angry
 
 void loop() {
   if (debugMode){
@@ -99,33 +100,42 @@ void loop() {
       stepperToAngle(stepperAngle + magnitudeAngle);
       servoArm.write(servoArmAngle);
       break;
+
     case 2:
       //gototarget
+      delay(5);
+      Serial.println("please input angle where ToF mesured at : ");
+      atAngle = DataIN();
       Serial.println("please input ToF mesurment (0-100) : ");
-      goToTarget(DataIN());
-      
+      goToTarget(atAngle,DataIN());
     break;
+    
 
     case 3:
       //readTOF
+      delay(5);
+
       Serial.println("please input number of iterations : ");
       Serial.println(readTOF(DataIN()));
     break;
 
     case 4:
       //grab
+      delay(5);
       Serial.println("grabing...");
       grab();
     break;
 
     case 5:
       //sweep
+      delay(5);
       Serial.println("enter amount of degrees to sweep through");
       sweep(DataIN());
     break;
 
     case 6:
       //steppertoangle
+      delay(5);
       Serial.println("please input angle for stepper motor : ");
       stepperAngle = DataIN();
       stepperToAngle(stepperAngle);
@@ -134,6 +144,7 @@ void loop() {
 
     case 7:
       //servoArm
+      delay(5);
       Serial.println("please input angle for servo : ");
       servoArmAngle = DataIN();
       servoArm.write(servoArmAngle);    
@@ -142,6 +153,7 @@ void loop() {
 
     case 8:
       //Zservo
+      delay(5);
       Serial.println("please input angle for servo : ");
       servoZ.write(DataIN());
       
@@ -150,6 +162,7 @@ void loop() {
 
     case 9:
       //gripServo
+      delay(5);
       Serial.println("please input angle for servo : ");
       servoGrip.write(DataIN());
 
@@ -157,12 +170,14 @@ void loop() {
 
     case 10:
       //ungrab
+      delay(5);
       Serial.println("ungrabing...");
       ungrab();
     break;
 
     case 11:
       //sweep
+      delay(5);
       Serial.println("sweeping...");
       sweep2();
 
@@ -250,14 +265,14 @@ void inverseK(float ang,float mag)
     
 }
 
-void goToTarget(float mesuredDistance){ 
+void goToTarget(int atAngle, float mesuredDistance){ 
 
   float newMagnitude;
   float newAngle;
   float sensAngle = abs(stepperAngle + servoArmAngle -90); //getting the angle between the magnitude line and the sensor direction 
 
   newMagnitude = sqrt(pow(magnitude,2)+pow(mesuredDistance,2)-2*mesuredDistance*magnitude*cos((sensAngle/180)* PI));
-  newAngle = magnitudeAngle-(acos((pow(magnitude,2)+pow(newMagnitude,2)-pow(mesuredDistance,2))/(2.0*magnitude*newMagnitude))* (180.0/PI));
+  newAngle = atAngle-(acos((pow(magnitude,2)+pow(newMagnitude,2)-pow(mesuredDistance,2))/(2.0*magnitude*newMagnitude))* (180.0/PI));
 
   magnitude = newMagnitude;
   magnitudeAngle = newAngle;
@@ -290,7 +305,7 @@ int readTOF(int numOfIterations){
   
     TOF.rangingTest(&measure, false); // set it to 'true' to get all debug data in serial! (probably never be used)
 
-    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 8000 ) {  // filter failures and incorrect data
+    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 800 ) {  // filter failures and incorrect data
     Serial.println(measure.RangeMilliMeter); //prints distance
     data = data + measure.RangeMilliMeter;  
     succsesses++;
@@ -324,18 +339,20 @@ int sweep(int anglesToScan){
   inverseK(magnitudeAngle,magnitude);     //enter sweep position
   servoArm.write(servoArmAngle);
   stepperToAngle(stepperAngle+magnitudeAngle);
-  servoZ.write(180);
+  servoZ.write(160);
 
   int dist;
 
   for(int i = 0; i <= anglesToScan; i++){
     dist = readTOF(1);
 
-    if (dist =! 0){
+    
+
+    if (dist != 0){
       distSum = distSum + dist;
       angleSum = angleSum + (magnitudeAngle + magnitudeAngle -i);
       numOfMesurment++;
-      Serial.println(distSum);
+
 
     }
     stepperToAngle(stepperAngle + magnitudeAngle -i);
@@ -383,7 +400,7 @@ int sweep2(){
   inverseK(magnitudeAngle,magnitude);     
   servoArm.write(servoArmAngle);
   stepperToAngle(stepperAngle+magnitudeAngle);
-  servoZ.write(180);
+  servoZ.write(160);
   servoGrip.write(20);
   delay(300);
 
