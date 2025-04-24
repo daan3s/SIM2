@@ -74,7 +74,7 @@ void loop() {
   if (debugMode){
     //debugmode 
     //manualy execute functions
-      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab  11,sweep2");
+      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab");
       Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
@@ -175,12 +175,6 @@ void loop() {
       ungrab();
     break;
 
-    case 11:
-      //sweep
-      delay(5);
-      Serial.println("sweeping...");
-      sweep2();
-
     default:
       Serial.println("command not recognised");
     }
@@ -275,8 +269,14 @@ void goToTarget(int atAngle, float mesuredDistance){
   newMagnitude = sqrt(pow(magnitude,2)+pow(mesuredDistance,2)-2*mesuredDistance*magnitude*cos((sensAngle/180)* PI));
   newAngle = atAngle-(acos((pow(magnitude,2)+pow(newMagnitude,2)-pow(mesuredDistance,2))/(2.0*magnitude*newMagnitude))* (180.0/PI));
 
+  if(newMagnitude>stepperArmLengh+servoArmLengh){
+    newMagnitude = stepperArmLengh+servoArmLengh;
+  }
+
   magnitude = newMagnitude;
   magnitudeAngle = newAngle;
+
+  
   
 
   
@@ -395,39 +395,11 @@ void ungrab(){
   servoZ.write(0);
 }
 
-int sweep2(){
-
-  magnitude = magnitudePercent(80);     //enter sweep position
-  inverseK(magnitudeAngle,magnitude);     
-  servoArm.write(servoArmAngle);
-  stepperToAngle(stepperAngle+magnitudeAngle);
-  servoZ.write(160);
-  servoGrip.write(20);
-  delay(300);
-
-  int inrangeCounter = 0; 
-  int dist;
-
-  while(true){
-    dist = readTOF(2);
-    
-    Serial.print(dist);
-
-    if(dist>180 && dist<450){
-      Serial.print("  inrange  ");
-      inrangeCounter++;
-    }
-
-    if(inrangeCounter>1){
-      break;
-    }
-    stepperToAngle(stepperAngle + magnitudeAngle--);
-    delay(500);
-  }
-  Serial.print("saw object at ");
-  Serial.print(magnitudeAngle);
-  Serial.print(" at a distance of ");
-  Serial.println(dist);
-  return(dist);
+void funsieres(){
+  inverseK(180, 80);
+  delay(200);
+  inverseK(goToTarget(sweep(60)));
+  
 }
+
 
