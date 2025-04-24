@@ -267,6 +267,7 @@ void inverseK(float ang,float mag)
 
 void goToTarget(int atAngle, float mesuredDistance){ 
 
+  mesuredDistance = mesuredDistance+20;
   float newMagnitude;
   float newAngle;
   float sensAngle = abs(stepperAngle + servoArmAngle -90); //getting the angle between the magnitude line and the sensor direction 
@@ -305,7 +306,7 @@ int readTOF(int numOfIterations){
   
     TOF.rangingTest(&measure, false); // set it to 'true' to get all debug data in serial! (probably never be used)
 
-    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 800 ) {  // filter failures and incorrect data
+    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 600 ) {  // filter failures and incorrect data
     Serial.println(measure.RangeMilliMeter); //prints distance
     data = data + measure.RangeMilliMeter;  
     succsesses++;
@@ -339,27 +340,27 @@ int sweep(int anglesToScan){
   inverseK(magnitudeAngle,magnitude);     //enter sweep position
   servoArm.write(servoArmAngle);
   stepperToAngle(stepperAngle+magnitudeAngle);
-  servoZ.write(160);
+  servoZ.write(140);
+  servoGrip.write(0);
 
   int dist;
+  angleSum = 0;
 
   for(int i = 0; i <= anglesToScan; i++){
-    dist = readTOF(1);
-
+    dist = readTOF(5);
+    
     
 
     if (dist != 0){
       distSum = distSum + dist;
-      angleSum = angleSum + (magnitudeAngle + magnitudeAngle -i);
+      angleSum = angleSum + (magnitudeAngle -i);
       numOfMesurment++;
-
-
     }
     stepperToAngle(stepperAngle + magnitudeAngle -i);
     delay(200);
   }
-  distSum = distSum/numOfMesurment;
-  angleSum = angleSum/numOfMesurment;
+  distSum = (distSum/numOfMesurment);
+  angleSum = (angleSum/numOfMesurment);
 
   Serial.print("saw object at ");
   Serial.print(angleSum);
