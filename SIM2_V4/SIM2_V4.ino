@@ -9,9 +9,12 @@ Adafruit_VL53L0X TOF = Adafruit_VL53L0X();    //declare time of flight
 #define EN_PIN   8  
 #define FSR_PIN A0
 
-int currentStepperAngle = 180; 
+int currentStepperAngle = 0; 
 const int STEPS_PER_REV = 1600;  // 1/8 step mode
 const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
+
+const int numbers[] = {-1, 2, -9, 12, -15, 20, -21, 14, -17, 6, -7, 0, -3, 4, -11, 10, -13, 18, -22, 16, -19, 8, -5, 25};  
+const int angles[]  = {0, -15, -30, -45, -60, -75, -90, -105, -120, -135, -150, -165, 180, 165, 150, 235, 120, 105, 90, 75, 60, 45, 30, 15};
 
 const int thresholdPress = 512;
 
@@ -20,7 +23,7 @@ const float servoArmLengh = 120;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 
-int magnitudeAngle = 180; // in deg
+int magnitudeAngle = 0; // in deg
 
 float stepperAngle = 0;   //upper arm's angle
 float servoArmAngle = 0;   //lower arm's angle
@@ -54,6 +57,8 @@ void setup() {
 
   servoZ.write(0);      //initial location of servos (good for debug)
   servoGrip.write(180);
+  stepperToAngle(0);
+  servoArm.write(180);
 /*
   Serial.println("start in debug mode?   (type 1 for yes)");
   switch(DataIN()) {
@@ -74,7 +79,7 @@ void loop() {
   if (debugMode){
     //debugmode 
     //manualy execute functions
-      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab");
+      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab  11,funSieres");
       Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
@@ -175,6 +180,14 @@ void loop() {
       ungrab();
     break;
 
+    case 11:
+      //ungrab
+      delay(5);
+      Serial.println("comiting FUN");
+      funSieres();
+    break;
+    
+
     default:
       Serial.println("command not recognised");
     }
@@ -206,24 +219,19 @@ int DataIN(){
   
   while(Serial.available() == 0){} //stops everything until there's input at serial 
     
-  String input = Serial.readStringUntil('\n');  
-  input.trim();  
+  int input = Serial.parseInt();  
+  serialFlush();
+  
+  Serial.println(input);
+  return(input);
 
-  if(isNumber(input)){
-    tenp = input.toInt();
-    Serial.println(tenp);
-    return(tenp);
-  }
+  
 }
 
-bool isNumber(String str) {
-    if (str.length() == 0) return false;
-    for (unsigned int i = 0; i < str.length(); i++) {
-        if (!isDigit(str[i])) {
-            return false;
-        }
-    }
-    return true;
+void serialFlush(){
+  while(Serial.available() > 0) {
+    char t = Serial.read();
+  }
 }
 
 void stepperToAngle(int targetAngle) {
@@ -275,10 +283,6 @@ void goToTarget(int atAngle, float mesuredDistance){
 
   magnitude = newMagnitude;
   magnitudeAngle = newAngle;
-
-  
-  
-
   
 
   Serial.print("mesuredDistance : ");  //debug
@@ -306,7 +310,7 @@ int readTOF(int numOfIterations){
   
     TOF.rangingTest(&measure, false); // set it to 'true' to get all debug data in serial! (probably never be used)
 
-    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 600 ) {  // filter failures and incorrect data
+    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 900 ) {  // filter failures and incorrect data
     Serial.println(measure.RangeMilliMeter); //prints distance
     data = data + measure.RangeMilliMeter;  
     succsesses++;
@@ -318,7 +322,7 @@ int readTOF(int numOfIterations){
   }
 
   if(failures < numOfIterations){
-    data = data / numOfIterations; //converts mesurments into an avarige
+    data = (data / (numOfIterations*1)); //converts mesurments into an avarige
     return(data);
   }else{
     return (0); //failed scan or out of range mesurments
@@ -326,6 +330,9 @@ int readTOF(int numOfIterations){
 }
 
 //work in progress
+
+int sweepOut1;
+int sweepOut2;
 
 int sweep(int anglesToScan){ 
   // scans for the diabolo
@@ -336,25 +343,34 @@ int sweep(int anglesToScan){
   int hasMesured = 0;
   int numOfMesurment = 0;
 
-  magnitude = magnitudePercent(80);
+  magnitude = magnitudePercent(76);
   inverseK(magnitudeAngle,magnitude);     //enter sweep position
   servoArm.write(servoArmAngle);
   stepperToAngle(stepperAngle+magnitudeAngle);
-  servoZ.write(140);
+  servoZ.write(180);
   servoGrip.write(0);
 
   int dist;
+  int hasSeen = 0;
   angleSum = 0;
 
   for(int i = 0; i <= anglesToScan; i++){
-    dist = readTOF(5);
-    
+    delay(10);
+    dist = readTOF(10);
     
 
     if (dist != 0){
       distSum = distSum + dist;
       angleSum = angleSum + (magnitudeAngle -i);
       numOfMesurment++;
+    }
+
+    if (numOfMesurment > 2){
+      hasSeen++;
+    }
+
+    if(hasSeen && !dist || hasSeen > 30){
+      break;
     }
     stepperToAngle(stepperAngle + magnitudeAngle -i);
     delay(200);
@@ -366,6 +382,8 @@ int sweep(int anglesToScan){
   Serial.print(angleSum);
   Serial.print(" at a distance of ");
   Serial.println(distSum);
+  sweepOut1 = angleSum;
+  sweepOut2 = distSum;
   return(angleSum,distSum);
 }
 
@@ -380,7 +398,7 @@ int pressureValue;
     Serial.print("Pressure Value: ");
     Serial.println(pressureValue);
 
-    if(gripAngle <= 20){
+    if(gripAngle <= 0){
       break;
     }
   }while(pressureValue > thresholdPress); //check if gripper is gripping
@@ -395,11 +413,50 @@ void ungrab(){
   servoZ.write(0);
 }
 
-void funsieres(){
-  inverseK(180, 80);
+void funSieres(){
   delay(200);
-  inverseK(goToTarget(sweep(60)));
-  
+  sweep(180);
+
+  if(sweepOut2 <= 0){
+    magnitudeAngle = 180;
+    stepperToAngle(stepperAngle + magnitudeAngle);
+    delay(150);
+
+    sweep(180);
+  }
+
+  goToTarget(sweepOut1,sweepOut2);
+  delay(100);
+  ungrab();
+
+  inverseK(magnitudeAngle,magnitude);
+  stepperToAngle(stepperAngle + magnitudeAngle);
+  delay(150);
+  servoArm.write(servoArmAngle);
+  delay(600);
+
+  grab();
+  delay(150);
+
+  magnitudeAngle = getAngleFromNumber(DataIN());
+  magnitude = magnitudePercent(85);
+
+  inverseK(magnitudeAngle,magnitude);
+  stepperToAngle(stepperAngle + magnitudeAngle);
+  delay(150);
+  servoArm.write(servoArmAngle);
+  delay(600);
+
+  ungrab();
+}
+
+int getAngleFromNumber(int num) {
+    for (int i = 0; i < 24; i++) {
+        if (numbers[i] == num) {
+            return angles[i];
+        }
+    }
+    return -1;  // Invalid number
 }
 
 
