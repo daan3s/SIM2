@@ -458,10 +458,11 @@ bool waitforbutton(int delaTimer){  //to be replaced with serial as button
 //////////////// arm functions
 
 void armloop() {
+while(true){
   if (debugMode){
     //debugmode 
     //manualy execute functions
-      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab  11,funSieres");
+      Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab  11,funSieres  12,exit");
       Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
@@ -573,16 +574,15 @@ void armloop() {
       //exit
       delay(5);
       Serial.println("EXITTING ARM");
-      funSieres();
+      return;
     break;
-    break;
-    
-
+  
     default:
       Serial.println("command not recognised");
     }
     Serial.println("");
     Serial.println("");
+    
   }else{
     //normal mode
     //automicly does everything
@@ -595,6 +595,7 @@ void armloop() {
       servoArm.write(servoArmAngle);    //i put my servo backards
 
   }
+}
 }
 
 int magnitudePercent(int perc){ //converts % to mm
