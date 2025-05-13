@@ -40,6 +40,7 @@ bool lineFollowingMode = true;  // Start in Line Following Mode
 QTRSensors qtr;
 const  uint8_t SensorCount = 8;
 uint16_t sensorValues[SensorCount];
+
 void calibrateSensors() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
