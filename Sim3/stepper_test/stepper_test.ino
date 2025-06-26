@@ -1,14 +1,11 @@
-#define DIR_PIN  2 
-#define STEP_PIN 3  
-#define EN_PIN   4  
+#define DIR_PIN  51
+#define STEP_PIN 53
+#define EN_PIN   52  
 
-const int STEPS_PER_REV = 640000;  // 1/8 step mode
-const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
+const unsigned int STEPS_PER_REV = 64142 ;  // 1/8 step mode
+const float STEPS_PER_DEGREE = STEPS_PER_REV / 360-.0;  // 4.44 steps per degree
 
 float currentAngle = 0; 
-
-const int validAngles[] = {0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 
-                          180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345, 360};
 
 void setup() {
     Serial.begin(9600);
@@ -38,24 +35,6 @@ void loop() {
     }
 }
 
-bool isNumber(String str) {
-    if (str.length() == 0) return false;
-    for (unsigned int i = 0; i < str.length(); i++) {
-        if (!isDigit(str[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool isValidAngle(int angle) {
-    for (int i = 0; i < 25; i++) {
-        if (validAngles[i] == angle) {
-            return true;
-        }
-    }
-    return false;
-}
 
 void moveToAngle(float targetAngle) {
     if (targetAngle == currentAngle) { 
@@ -63,8 +42,8 @@ void moveToAngle(float targetAngle) {
         return;
     }
 
-    float angleDifference = targetAngle - currentAngle;
-    int stepsToMove = abs(angleDifference * STEPS_PER_DEGREE);  
+    float angleDifference = (targetAngle - currentAngle);
+    unsigned long stepsToMove = (abs(angleDifference) * STEPS_PER_DEGREE);  
 
     Serial.print("Moving ");
     Serial.print(stepsToMove);
@@ -73,7 +52,7 @@ void moveToAngle(float targetAngle) {
     digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
 
 
-    for (int i = 0; i < stepsToMove; i++) {
+    for (unsigned long i = 0; i < stepsToMove; i++) {
         int stepDelay = 200;
         digitalWrite(STEP_PIN, HIGH);
         delayMicroseconds(stepDelay);
