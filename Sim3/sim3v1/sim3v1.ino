@@ -6,6 +6,8 @@
   #include <math.h>
   #include <Servo.h>
   #include "Adafruit_VL53L0X.h"
+  #include <SoftwareSerial.h>
+
 //define 
   //ajustebles  (change theese to fine tune) 
     //car
@@ -38,6 +40,7 @@
       #define L298N_enb     11     //PMW pin 
     
     //arm
+      SoftwareSerial BT(10, 11);  // Bluetooth RX, TX
       #define DIR_PIN  4  
       #define STEP_PIN 2  
       #define EN_PIN   8  
@@ -102,6 +105,8 @@ void setup() {
       pinMode(EN_PIN, OUTPUT);
   //anything else
   Serial.begin(9600); 
+  BT.begin(9600); // Bluetooth baud rate
+
     //car
     
       DCmotor(motorLEFT, 0);     //turns off motors at start 
@@ -665,6 +670,7 @@ void goToTarget(int atAngle, float mesuredDistance){
   Serial.print("  | magPecent : ");
   Serial.print(map(newMagnitude,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh,0,100));
   Serial.println("");
+
   
 }
 
@@ -786,7 +792,7 @@ void ungrab(){
 
 void funSieres(){
   delay(200);
-  sweep(180);
+  sweep(360);
 
   if(sweepOut2 <= 0){
     magnitudeAngle = 180;
@@ -840,30 +846,34 @@ void ergebe(int r,int g, int b){
 }
 */
 
-
-void serialFlush(){
-  while(Serial.available() > 0) {
-    char t = Serial.read();
+void serialFlush(bool isBT){
+  char t;
+  if(isBT){
+    while(BT.available() > 0) {
+      t = BT.read();
+    }
+  }else{
+    while(Serial.available() > 0) {
+      t = Serial.read();
+    }
   }
 }
 
 
 int DataIN(){
   //need to make this not part advance until a command has been given
-  int tenp;
   Serial.print("input a number pls : ");
+  int input;
+  while(Serial.available() == 0 || BT.available()==0){} //stops everything until there's input at serial 
+  if(!(Serial.available() == 0)){
+    input = Serial.parseInt();  
+    serialFlush(0);
   
-  while(Serial.available() == 0){} //stops everything until there's input at serial 
-    
-  int input = Serial.parseInt();  
-  serialFlush();
-  
-  Serial.println(input);
+    Serial.println(input);
+  }else{
+    input = BT.parseInt();  
+    serialFlush(1);
+    BT.println(input);
+  }
   return(input);
-
-  
 }
-
-
-
-

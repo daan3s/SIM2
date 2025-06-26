@@ -217,7 +217,8 @@ int DataIN(){
   int tenp;
   Serial.print("input a number pls : ");
   
-  while(Serial.available() == 0){} //stops everything until there's input at serial 
+
+  while(Serial.available() == 0 || Bt.available()==0){} //stops everything until there's input at serial 
     
   int input = Serial.parseInt();  
   serialFlush();
