@@ -4,22 +4,22 @@
 
 Adafruit_VL53L0X TOF = Adafruit_VL53L0X();    //declare time of flight
 
-#define DIR_PIN  4  
-#define STEP_PIN 2  
-#define EN_PIN   8  
+#define DIR_PIN  51
+#define STEP_PIN 53
+#define EN_PIN   52  
 #define FSR_PIN A0
 
 int currentStepperAngle = 0; 
-const int STEPS_PER_REV = 1600;  // 1/8 step mode
-const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0;  // 4.44 steps per degree
+const unsigned int STEPS_PER_REV = 64142 ;  // 1/8 step mode (inacuracy is 1/720 degree)
+const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0; 
 
 const int numbers[] = {-1, 2, -9, 12, -15, 20, -21, 14, -17, 6, -7, 0, -3, 4, -11, 10, -13, 18, -22, 16, -19, 8, -5, 25};  
 const int angles[]  = {0, -15, -30, -45, -60, -75, -90, -105, -120, -135, -150, -165, 180, 165, 150, 235, 120, 105, 90, 75, 60, 45, 30, 15};
 
 const int thresholdPress = 512;
 
-const float stepperArmLengh = 190;  
-const float servoArmLengh = 120;
+const float stepperArmLengh = 192;  
+const float servoArmLengh = 130;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 
@@ -44,21 +44,25 @@ void setup() {
 
   digitalWrite(EN_PIN, LOW);  // Enable motor driver
 
-  servoArm.attach(10); //lower arm
-  servoZ.attach(13); //temp pin for z servo
-  servoGrip.attach(9);
+  servoArm.attach(5); //lower arm 
+  servoZ.attach(6); //temp pin for z servo
+  servoGrip.attach(7);
 
   Serial.begin(9600);
+  delay(100);
   Serial.println("");
   if (!TOF.begin()) {   //initialise serial for ToF
     Serial.println(F("Failed to boot Time of Flight sensor"));
-    while(1);
+    //while(1);
   }
 
   servoZ.write(0);      //initial location of servos (good for debug)
   servoGrip.write(180);
   stepperToAngle(0);
   servoArm.write(180);
+
+    Serial.println("~setup complete~");
+
 /*
   Serial.println("start in debug mode?   (type 1 for yes)");
   switch(DataIN()) {
@@ -218,7 +222,7 @@ int DataIN(){
   Serial.print("input a number pls : ");
   
 
-  while(Serial.available() == 0 || Bt.available()==0){} //stops everything until there's input at serial 
+  while(Serial.available() == 0){} //stops everything until there's input at serial 
     
   int input = Serial.parseInt();  
   serialFlush();
@@ -246,11 +250,8 @@ void stepperToAngle(int targetAngle) {
 
     digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
 
-    int minDelay = 4500; // higher valeue » Slow movement for high precision
-    int maxDelay = 5500;  // if maxdelay is higher than mindelay gradual acceleration becomes gradual decelaretion  
-
     for (int i = 0; i < stepsToMove; i++) {
-        int stepDelay = map(i, 0, stepsToMove, maxDelay, minDelay); // Gradual acceleration
+        int stepDelay = 200;
         digitalWrite(STEP_PIN, HIGH);
         delayMicroseconds(stepDelay);
         digitalWrite(STEP_PIN, LOW);

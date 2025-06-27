@@ -4,17 +4,18 @@ Adafruit_VL53L0X TOF = Adafruit_VL53L0X();
 
 void setup() {
 
-  pinMode(12, INPUT_PULLUP); //button
+  pinMode(3, INPUT_PULLUP); //button
 
   Serial.begin(9600);
   while (! Serial) {
     delay(1);
   }
-
+  Serial.println("before tof");
   if (!TOF.begin()) {   //initialise serial for ToF
     Serial.println(F("Failed to boot Time of Flight sensor"));
     while(1);
   }
+  Serial.println("after tof");
 }
 
 int somting;  // added for readability
