@@ -46,7 +46,6 @@
   int ssRthres; 
   int ssLthres; 
   int midthres; 
-  bool happen =0; 
   int laTimer = 0; 
 
 void setup() { 

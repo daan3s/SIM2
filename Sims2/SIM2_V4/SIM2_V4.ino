@@ -1,25 +1,34 @@
+
+
+//########### presure sensor is disabled
+//########### re enable it in the grab function
+//########### once the pressure sensors are fixed/replaced
+
+
 #include <math.h>
 #include <Servo.h>
 #include "Adafruit_VL53L0X.h"
+#include <AccelStepper.h>
+
 
 Adafruit_VL53L0X TOF = Adafruit_VL53L0X();    //declare time of flight
 
-#define DIR_PIN  51
-#define STEP_PIN 53
+AccelStepper jimmy(AccelStepper::DRIVER,53,51); // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
 #define EN_PIN   52  
 #define FSR_PIN A0
 
-int currentStepperAngle = 0; 
-const unsigned int STEPS_PER_REV = 64142 ;  // 1/8 step mode (inacuracy is 1/720 degree)
-const float STEPS_PER_DEGREE = STEPS_PER_REV / 360.0; 
+const float microStepMode = 4;//micro step is 4 actually
+const float gearRatio=40.3;
+const int degreeToSteps = microStepMode*gearRatio*(200.0/360.0);
+
 
 const int numbers[] = {-1, 2, -9, 12, -15, 20, -21, 14, -17, 6, -7, 0, -3, 4, -11, 10, -13, 18, -22, 16, -19, 8, -5, 25};  
 const int angles[]  = {0, -15, -30, -45, -60, -75, -90, -105, -120, -135, -150, -165, 180, 165, 150, 235, 120, 105, 90, 75, 60, 45, 30, 15};
 
 const int thresholdPress = 512;
 
-const float stepperArmLengh = 192;  
-const float servoArmLengh = 130;
+const float stepperArmLengh = 211;  
+const float servoArmLengh = 129;
 
 int magnitude = map(51,0,100,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh); //in millimeter | starts at 50% extended
 
@@ -38,8 +47,6 @@ void setup() {
   // put your setup code here, to run once:
   
   pinMode(FSR_PIN, INPUT);
-  pinMode(DIR_PIN, OUTPUT);  //stepper pinout
-  pinMode(STEP_PIN, OUTPUT);
   pinMode(EN_PIN, OUTPUT);
 
   digitalWrite(EN_PIN, LOW);  // Enable motor driver
@@ -48,18 +55,25 @@ void setup() {
   servoZ.attach(6); //temp pin for z servo
   servoGrip.attach(7);
 
+  jimmy.setMaxSpeed(1500); //ALWAYS DECLARE THIS
+  jimmy.setAcceleration(700); //ALWAYS DECLARE THIS
+  jimmy.setCurrentPosition(0); //set current position to 0
+
+  delay(2000);
+
   Serial.begin(9600);
   delay(100);
-  Serial.println("");
+  Serial.println("bfore");
   if (!TOF.begin()) {   //initialise serial for ToF
     Serial.println(F("Failed to boot Time of Flight sensor"));
     //while(1);
   }
+  Serial.println("after");
 
   servoZ.write(0);      //initial location of servos (good for debug)
   servoGrip.write(180);
   stepperToAngle(0);
-  servoArm.write(180);
+  servoArm.write(0);
 
     Serial.println("~setup complete~");
 
@@ -84,7 +98,6 @@ void loop() {
     //debugmode 
     //manualy execute functions
       Serial.println("list of functions :  1,inverseK   2,gototarget   3,readTOF  4,grab  5,sweep  6,steppertoangle  7,servoArm  8,Zservo  9,gripServo  10,ungrab  11,funSieres");
-      Serial.println("please input the number next to the function to select it");
   switch(DataIN()) {
     case 1:
       //inverseK
@@ -102,12 +115,12 @@ void loop() {
       inverseK(magnitudeAngle,magnitude);
 
       Serial.print("stepper : ");
-      Serial.println(stepperAngle + magnitudeAngle);
-      Serial.print("servo : ");
+      Serial.print(magnitudeAngle - stepperAngle);
+      Serial.print("  servo : ");
       Serial.println(servoArmAngle);
       
-      stepperToAngle(stepperAngle + magnitudeAngle);
-      servoArm.write(servoArmAngle);
+      stepperToAngle(magnitudeAngle - stepperAngle);
+      servoArm.write(180-servoArmAngle);;
       break;
 
     case 2:
@@ -156,7 +169,7 @@ void loop() {
       delay(5);
       Serial.println("please input angle for servo : ");
       servoArmAngle = DataIN();
-      servoArm.write(servoArmAngle);    
+      servoArm.write(180-servoArmAngle);
 
     break;
 
@@ -205,8 +218,8 @@ void loop() {
 
       inverseK(magnitudeAngle,magnitude);
 
-      stepperToAngle(stepperAngle+magnitudeAngle);   //will be replaced with the stepper motor
-      servoArm.write(servoArmAngle);    //i put my servo backards
+      stepperToAngle(magnitudeAngle - stepperAngle);   //will be replaced with the stepper motor
+      servoArm.write(180-servoArmAngle);    //i put my servo backards
 
   }
 }
@@ -241,24 +254,9 @@ void serialFlush(){
 
 void stepperToAngle(int targetAngle) {
 
-    float angleDifference = targetAngle - currentStepperAngle;
-    int stepsToMove = abs(angleDifference) * STEPS_PER_DEGREE;  
-
-    Serial.print("Moving ");
-    Serial.print(stepsToMove);
-    Serial.println(" steps");
-
-    digitalWrite(DIR_PIN, angleDifference > 0 ? HIGH : LOW);
-
-    for (int i = 0; i < stepsToMove; i++) {
-        int stepDelay = 200;
-        digitalWrite(STEP_PIN, HIGH);
-        delayMicroseconds(stepDelay);
-        digitalWrite(STEP_PIN, LOW);
-        delayMicroseconds(stepDelay);
-    }
-
-    currentStepperAngle = targetAngle; 
+    jimmy.moveTo(-targetAngle*degreeToSteps); //move 500 steps from 0 
+    jimmy.runToPosition(); //Blocking, it will stop everything, go to the target position and then remove other things
+ 
     Serial.println("Movement complete!");
 }
 
@@ -271,30 +269,32 @@ void inverseK(float ang,float mag)
 
 void goToTarget(int atAngle, float mesuredDistance){ 
 
-  mesuredDistance = mesuredDistance+20;
+  mesuredDistance;
   float newMagnitude;
-  float newAngle;
+  float AngleChange;
   float sensAngle = abs(stepperAngle + servoArmAngle -90); //getting the angle between the magnitude line and the sensor direction 
 
   newMagnitude = sqrt(pow(magnitude,2)+pow(mesuredDistance,2)-2*mesuredDistance*magnitude*cos((sensAngle/180)* PI));
-  newAngle = atAngle-(acos((pow(magnitude,2)+pow(newMagnitude,2)-pow(mesuredDistance,2))/(2.0*magnitude*newMagnitude))* (180.0/PI));
+  AngleChange = (acos((pow(magnitude,2)+pow(newMagnitude,2)-pow(mesuredDistance,2))/(2.0*magnitude*newMagnitude))* (180.0/PI));
 
   if(newMagnitude>stepperArmLengh+servoArmLengh){
     newMagnitude = stepperArmLengh+servoArmLengh;
   }
 
   magnitude = newMagnitude;
-  magnitudeAngle = newAngle;
+  magnitudeAngle = AngleChange + atAngle;
   
 
   Serial.print("mesuredDistance : ");  //debug
   Serial.print(mesuredDistance);
-  Serial.print("  | newMagnitude : ");
-  Serial.print(newMagnitude);
-  Serial.print("  | newAngle : ");
-  Serial.print(newAngle);
+  Serial.print("  | magnitude : ");
+  Serial.print(magnitude);
   Serial.print("  | magPecent : ");
   Serial.print(map(newMagnitude,stepperArmLengh-servoArmLengh,stepperArmLengh+servoArmLengh,0,100));
+  Serial.print("  | magnitudeAngle : ");
+  Serial.print(magnitudeAngle);
+  Serial.print("  | AngleChange : ");
+  Serial.print(AngleChange);
   Serial.println("");
   
 }
@@ -308,11 +308,11 @@ int readTOF(int numOfIterations){
     
    
     VL53L0X_RangingMeasurementData_t measure; // takes the actual mesurment
-     delay(17);
-  
+     delay(25);
+      
     TOF.rangingTest(&measure, false); // set it to 'true' to get all debug data in serial! (probably never be used)
 
-    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 900 ) {  // filter failures and incorrect data
+    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 900 && measure.RangeMilliMeter > 22) {  // filter failures and incorrect data
     Serial.println(measure.RangeMilliMeter); //prints distance
     data = data + measure.RangeMilliMeter;  
     succsesses++;
@@ -324,7 +324,7 @@ int readTOF(int numOfIterations){
   }
 
   if(failures < numOfIterations){
-    data = (data / (numOfIterations*1)); //converts mesurments into an avarige
+    data = (data / (numOfIterations)); //converts mesurments into an avarige
     return(data);
   }else{
     return (0); //failed scan or out of range mesurments
@@ -345,25 +345,29 @@ int sweep(int anglesToScan){
   int hasMesured = 0;
   int numOfMesurment = 0;
 
-  magnitude = magnitudePercent(76);
+  magnitude = magnitudePercent(83);
   inverseK(magnitudeAngle,magnitude);     //enter sweep position
-  servoArm.write(servoArmAngle);
-  stepperToAngle(stepperAngle+magnitudeAngle);
+  servoArm.write(180-servoArmAngle);;
+  stepperToAngle(magnitudeAngle - stepperAngle);
   servoZ.write(180);
   servoGrip.write(0);
 
   int dist;
   int hasSeen = 0;
   angleSum = 0;
+    jimmy.setAcceleration(1400); //ALWAYS DECLARE THIS
 
-  for(int i = 0; i <= anglesToScan; i++){
+  for(int i = 0; i <= anglesToScan; i= i+2){
+    
+    stepperToAngle(magnitudeAngle - stepperAngle + i);
+
     delay(10);
-    dist = readTOF(10);
+    dist = readTOF(7);
     
 
     if (dist != 0){
       distSum = distSum + dist;
-      angleSum = angleSum + (magnitudeAngle -i);
+      angleSum = angleSum + (magnitudeAngle +i);
       numOfMesurment++;
     }
 
@@ -371,13 +375,14 @@ int sweep(int anglesToScan){
       hasSeen++;
     }
 
-    if(hasSeen && !dist || hasSeen > 30){
+    if(hasSeen && !dist || hasSeen > 20 || dist < 60 && dist > 4){
       break;
     }
-    stepperToAngle(stepperAngle + magnitudeAngle -i);
-    delay(200);
   }
-  distSum = (distSum/numOfMesurment);
+
+  jimmy.setAcceleration(700); //ALWAYS DECLARE THIS
+
+  distSum = (distSum/numOfMesurment)+30;
   angleSum = (angleSum/numOfMesurment);
 
   Serial.print("saw object at ");
@@ -391,19 +396,20 @@ int sweep(int anglesToScan){
 
 void grab(){
   int gripAngle = 180;
-  servoZ.write(180);
+  servoZ.write(165);
 int pressureValue;
   do{
     servoGrip.write(gripAngle--); //close gripper slightly
     
     pressureValue = analogRead(FSR_PIN); //read pressure sensor
+    //pressureValue = 1024; //remove this when re enebling pressure sensor
     Serial.print("Pressure Value: ");
     Serial.println(pressureValue);
 
-    if(gripAngle <= 0){
+    if(gripAngle <= 1){
       break;
     }
-  }while(pressureValue > thresholdPress); //check if gripper is gripping
+  }while(pressureValue < thresholdPress); //check if gripper is gripping
   servoZ.write(0); //gripper rises object
 }
 
@@ -421,21 +427,26 @@ void funSieres(){
 
   if(sweepOut2 <= 0){
     magnitudeAngle = 180;
-    stepperToAngle(stepperAngle + magnitudeAngle);
+    stepperToAngle(magnitudeAngle - stepperAngle);
     delay(150);
 
     sweep(180);
   }
-
+  Serial.println("end fun sweep");
   goToTarget(sweepOut1,sweepOut2);
   delay(100);
-  ungrab();
+
+  servoZ.write(0);
+  delay(300);
+  servoGrip.write(180);
+  delay(300);
+  
 
   inverseK(magnitudeAngle,magnitude);
-  stepperToAngle(stepperAngle + magnitudeAngle);
+  stepperToAngle(magnitudeAngle - stepperAngle);
   delay(150);
-  servoArm.write(servoArmAngle);
-  delay(600);
+  servoArm.write(180-servoArmAngle);;
+  delay(1600);
 
   grab();
   delay(150);
@@ -444,9 +455,9 @@ void funSieres(){
   magnitude = magnitudePercent(85);
 
   inverseK(magnitudeAngle,magnitude);
-  stepperToAngle(stepperAngle + magnitudeAngle);
+  stepperToAngle(magnitudeAngle - stepperAngle);
   delay(150);
-  servoArm.write(servoArmAngle);
+  servoArm.write(180-servoArmAngle);;
   delay(600);
 
   ungrab();
